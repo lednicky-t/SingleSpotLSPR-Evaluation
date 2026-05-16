@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lspr-single-evaluation"
+description = "Desktop single-spot LSPR evaluation application."
+readme = "README.md"
+requires-python = ">=3.12"
+dynamic = ["version"]
+dependencies = [
+    "h5py",
+    "numpy",
+    "PyQt6",
+    "pyqtgraph",
+    "PyYAML",
+    "lspr-ui>=0.1.0",
+    "lspr-core>=0.1.0",
+]
+
+[project.scripts]
+lspr-single-evaluation = "lspr_single_evaluation.app:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.dynamic]
+version = {attr = "lspr_single_evaluation.version.APP_VERSION"}
