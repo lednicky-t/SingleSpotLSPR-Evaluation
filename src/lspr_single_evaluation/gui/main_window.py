@@ -118,11 +118,11 @@ class MainWindow(QMainWindow):
         self.clear_button = QPushButton("Clear")
         self.clear_button.clicked.connect(self.clear_all)
 
-        load_section = CollapsibleSection("Load / Import", self._build_load_section_content(), expanded=True)
-
         self.metric_combo = QComboBox()
         self.metric_combo.addItems(METRIC_COLUMNS)
         self.metric_combo.currentTextChanged.connect(self._on_metric_changed)
+
+        load_section = CollapsibleSection("Load / Import", self._build_load_section_content(), expanded=True)
 
         self._processing_settings = load_processing_settings()
         self._build_processing_controls()
