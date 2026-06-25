@@ -6,9 +6,10 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+from platformdirs import user_config_dir
 
 
-DEFAULT_PROCESSING_PATH = Path.cwd() / "lspr_evaluation_settings.json"
+DEFAULT_PROCESSING_PATH = Path(user_config_dir("lspr-suite", appauthor=False)) / "lspr_evaluation_settings.json"
 
 
 @dataclass(slots=True)
