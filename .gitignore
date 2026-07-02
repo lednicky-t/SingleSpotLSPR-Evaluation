@@ -12,3 +12,6 @@ env/
 build/
 dist/
 *.egg-info/
+
+# Local runtime state
+lspr_evaluation_settings.json
