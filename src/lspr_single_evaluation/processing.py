@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
+import logging
+import shutil
 from dataclasses import asdict, dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +13,39 @@ from platformdirs import user_config_dir
 
 
 DEFAULT_PROCESSING_PATH = Path(user_config_dir("lspr-suite", appauthor=False)) / "lspr_evaluation_settings.json"
+
+_logger = logging.getLogger(__name__)
+
+# Set by _read_payload() when it has to quarantine a corrupted settings file.
+# main() checks this once QApplication exists so the user sees a warning
+# instead of silently getting fresh-default settings.
+_last_corruption_notice: str | None = None
+
+
+def get_and_clear_settings_corruption_notice() -> str | None:
+    """Return (and clear) the most recent settings-file corruption notice, if any."""
+    global _last_corruption_notice
+    notice = _last_corruption_notice
+    _last_corruption_notice = None
+    return notice
+
+
+def _quarantine_corrupt_file(path: Path, exc: Exception) -> Path:
+    """Move an unreadable settings file aside so a fresh one can be written."""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    quarantine_path = path.with_name(f"{path.name}.corrupt-{timestamp}")
+    try:
+        shutil.move(str(path), str(quarantine_path))
+    except OSError:
+        quarantine_path = path  # best effort - leave the original in place
+    _logger.warning("Settings file %s was unreadable (%s); moved to %s and reset to defaults.", path, exc, quarantine_path)
+    global _last_corruption_notice
+    _last_corruption_notice = (
+        "Your saved processing settings could not be read and were reset to defaults.\n\n"
+        f"The corrupted file was moved to:\n{quarantine_path}\n\n"
+        f"Reason: {exc}"
+    )
+    return quarantine_path
 
 
 @dataclass(slots=True)
@@ -38,13 +74,20 @@ def _payload() -> dict[str, Any]:
 def _read_payload(path: Path) -> dict[str, Any]:
     if not path.exists():
         return _payload()
-    loaded = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
+        _quarantine_corrupt_file(path, exc)
+        return _payload()
     return loaded if isinstance(loaded, dict) else _payload()
 
 
 def _write_payload(path: Path, payload: dict[str, Any]) -> None:
+    """Write *payload* atomically so a crash mid-write can't corrupt the file."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    tmp_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    tmp_path.replace(path)
 
 
 def save_processing_settings(settings: ProcessingSettings, path: Path = DEFAULT_PROCESSING_PATH) -> None:
