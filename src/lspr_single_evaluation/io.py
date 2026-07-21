@@ -373,7 +373,12 @@ def _score_time_candidate(name: str, dataset: h5py.Dataset, *, sample_count: int
     lower = name.lower()
     if "time_series" in lower:
         score += 100.0
-    if lower.endswith("t_ms") or lower.endswith("_ms"):
+    if "unix_ms" in lower or "acquired_at" in lower:
+        # Schema 6.0+ processed/metrics rows only carry this absolute
+        # timestamp (the relative "t_ms" column was removed) - prefer it
+        # explicitly over the generic "_ms" match below.
+        score += 90.0
+    elif lower.endswith("t_ms") or lower.endswith("_ms"):
         score += 70.0
     if "time" in lower:
         score += 40.0
@@ -404,6 +409,23 @@ def _decode_time_axis(time_values: np.ndarray, *, dataset_name: str, attrs: dict
     values = np.asarray(time_values, dtype=float)
     units = str(attrs.get("units", "")).lower()
     name = dataset_name.lower()
+
+    # Absolute Unix-epoch milliseconds (schema 6.0+ "acquired_at_unix_ms",
+    # the sole per-row timestamp now that the relative "t_ms" column has
+    # been removed - see packages/lspr_io/src/lspr_io/schema.py). Detected
+    # by name first; falls back to a magnitude check (epoch-ms values are
+    # always > 1e11, far above any realistic relative elapsed-ms value) so a
+    # differently-named absolute column still decodes correctly instead of
+    # being misread as a tiny relative offset by the generic "ms" branch
+    # below, which would silently produce a nonsense (epoch-scale) axis.
+    is_unix_epoch_ms = "unix_ms" in name or "acquired_at" in name
+    if not is_unix_epoch_ms and values.size and np.isfinite(values[0]) and values[0] > 1e11:
+        is_unix_epoch_ms = True
+    if is_unix_epoch_ms:
+        if values.size == 0:
+            return values
+        return (values - values[0]) / 1000.0
+
     if "ms" in name or "millisecond" in units or units == "ms":
         return values / 1000.0
     return values
