@@ -536,3 +536,13 @@ def load_spectra_file(path: str | Path) -> LoadedSpectra:
 
 
 
+def load_measurement_file(path: str | Path) -> LoadedSpectra:
+    """Load a supported measurement file without altering its source data."""
+    source_path = Path(path)
+    if source_path.suffix.lower() in {".h5", ".hdf5"}:
+        return load_spectra_file(source_path)
+    if source_path.suffix.lower() in {".csv", ".tsv", ".txt"}:
+        from .tabular_import import load_delimited_spectra
+
+        return load_delimited_spectra(source_path)
+    raise ValueError(f"Unsupported measurement file type: {source_path.suffix or '<none>'}")
