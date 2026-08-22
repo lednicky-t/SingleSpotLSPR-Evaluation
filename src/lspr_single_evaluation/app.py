@@ -5,19 +5,20 @@ import sys
 
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
-from lspr_ui import app_icon, apply_base_app_theme, get_active_theme
+from lspr_ui import APP_ID_SLSPR_EVALUATION, app_icon, apply_base_app_theme, get_active_theme, set_windows_app_user_model_id
 
 from .gui import MainWindow
 from .gui.acquisition_style import apply_acquisition_visual_style
 from .gui.logging_utils import GuiLogBridge, GuiLogHandler
 from .processing import get_and_clear_settings_corruption_notice
-from .version import APP_NAME, APP_VERSION, version_string
+from .version import APP_NAME, APP_VERSION
 
 
 def main() -> None:
+    set_windows_app_user_model_id(APP_ID_SLSPR_EVALUATION)
     app = QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
-    app.setApplicationDisplayName(version_string())
+    app.setApplicationDisplayName("sLSPR Evaluation")
     app.setApplicationVersion(APP_VERSION)
     app.setOrganizationName("LSPR")
     app.setOrganizationDomain("lspr.local")

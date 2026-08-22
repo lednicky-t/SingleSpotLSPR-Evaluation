@@ -52,7 +52,7 @@ from .widgets import CollapsibleSection, CompactSplitter
 class MainWindow(QMainWindow):
     def __init__(self, parent: QWidget | None = None, *, log_bridge: GuiLogBridge | None = None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("singleLSPR Evaluation")
+        self.setWindowTitle("sLSPR Evaluation")
         self.setMinimumSize(1280, 840)
         self.setWindowIcon(app_icon())
         self.settings = QSettings("LSPR", "singleLSPREvaluation")
